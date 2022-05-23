@@ -9,10 +9,23 @@
 import UIKit
 
 class TodoListViewController: UITableViewController {
-    var itemArr = ["find a jpb", "have more meaningful sex", "make $1m dollar"]
+    var itemArr = [Item]()
+    // added a plist storage
+    let defaults = UserDefaults.standard
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
+        // retrieve plist
+                if let items = defaults.array(forKey: "TodoListArr") as? [Item] {
+                    itemArr = items
+                }
+        let newItem = Item()
+        newItem.title = "call mike"
+        itemArr.append(newItem)
+        
+        let newItem2 = Item()
+        newItem2.title = "get eggs"
+        itemArr.append(newItem2)
     }
     //MARK: - TABLE VIEW SECION
     
@@ -24,22 +37,23 @@ class TodoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         // here is the cell type with identifier - indexPath will be passed as well as table auto magically to this fun
         let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
+        let item = itemArr[indexPath.row]
         // next now that we have our cell - we assign it - now our cell is prepped lets return it
-        cell.textLabel?.text = itemArr[indexPath.row]
+        cell.textLabel?.text = item.title
+        item.isDone
+        ? (cell.accessoryType = .checkmark)
+        : (cell.accessoryType = .none)
         return cell
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let ip = indexPath
+        let selectedItem = itemArr[ip.row]
         // here to make sure we auto deselect
         tableView.deselectRow(at: ip, animated: true)
-        let selectedCell = tableView.cellForRow(at: ip)
-        // check for checkmark
-        let hasCheckmark = tableView.cellForRow(at: ip)?.accessoryType == .checkmark
         // flip switch for checkmark
-        hasCheckmark
-        ? (selectedCell?.accessoryType = .none)
-        : (selectedCell?.accessoryType = .checkmark)
+        selectedItem.isDone = !selectedItem.isDone
+        tableView.reloadData()
     }
     //MARK: - ADD ITEM SECTION
     
@@ -51,9 +65,14 @@ class TodoListViewController: UITableViewController {
         
         // action button withim the alert
         let action = UIAlertAction(title: "Add item", style: .default) { UIAlertAction in
-            self.itemArr.append(newTodoListItem.text!)
+            //form model
+            let newItem = Item()
+            newItem.title = newTodoListItem.text!
+            self.itemArr.append(newItem)
             // Reload data
             self.tableView.reloadData()
+            // add to plist
+            self.defaults.set(self.itemArr, forKey: "TodoListArr")
         }
         
         // manually add that action
