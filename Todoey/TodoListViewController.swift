@@ -9,11 +9,12 @@
 import UIKit
 
 class TodoListViewController: UITableViewController {
-    let itemArr = ["find a jpb", "have more meaningful sex", "make $1m dollar"]
+    var itemArr = ["find a jpb", "have more meaningful sex", "make $1m dollar"]
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
     }
+    //MARK: - TABLE VIEW SECION
     
     // callout how many rows
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -40,7 +41,32 @@ class TodoListViewController: UITableViewController {
         ? (selectedCell?.accessoryType = .none)
         : (selectedCell?.accessoryType = .checkmark)
     }
-
-
+    //MARK: - ADD ITEM SECTION
+    
+    @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+        var newTodoListItem = UITextField()
+        
+        // create an alert
+        let alert = UIAlertController(title: "Create a todo list item" , message: "", preferredStyle: .alert)
+        
+        // action button withim the alert
+        let action = UIAlertAction(title: "Add item", style: .default) { UIAlertAction in
+            self.itemArr.append(newTodoListItem.text!)
+            // Reload data
+            self.tableView.reloadData()
+        }
+        
+        // manually add that action
+        alert.addAction(action)
+        
+        // add text field
+        alert.addTextField {(alertTextField) in
+            alertTextField.placeholder = "add a todo list item EX. call johnny"
+            newTodoListItem = alertTextField
+        }
+        // finally present the alert
+        self.present(alert, animated: true, completion: nil)
+    }
 }
+
 
