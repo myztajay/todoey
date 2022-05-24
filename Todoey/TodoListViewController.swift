@@ -7,25 +7,34 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoListViewController: UITableViewController {
     var itemArr = [Item]()
     // added a plist storage
     let defaults = UserDefaults.standard
+    // get our filepath
+    var dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    // grab the context from coredata
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+
+    
     override func viewDidLoad() {
-        super.viewDidLoad()
-        // Do any additional setup after loading the view.
-        // retrieve plist
-                if let items = defaults.array(forKey: "TodoListArr") as? [Item] {
-                    itemArr = items
-                }
-        let newItem = Item()
-        newItem.title = "call mike"
-        itemArr.append(newItem)
         
-        let newItem2 = Item()
-        newItem2.title = "get eggs"
-        itemArr.append(newItem2)
+        super.viewDidLoad()
+        // grabs a file path for the users document director
+        // retrieve plist
+        //        if let items = defaults.array(forKey: "TodoListArr") as? [Item] {
+        //            itemArr = items
+        //        }
+        //        let newItem = Item()
+        //        newItem.title = "call mike"
+        //        itemArr.append(newItem)
+        //
+        //        let newItem2 = Item()
+        //        newItem2.title = "get eggs"
+        //        itemArr.append(newItem2)
+        loadItems()
     }
     //MARK: - TABLE VIEW SECION
     
@@ -53,6 +62,7 @@ class TodoListViewController: UITableViewController {
         tableView.deselectRow(at: ip, animated: true)
         // flip switch for checkmark
         selectedItem.isDone = !selectedItem.isDone
+        self.saveItem()
         tableView.reloadData()
     }
     //MARK: - ADD ITEM SECTION
@@ -65,14 +75,17 @@ class TodoListViewController: UITableViewController {
         
         // action button withim the alert
         let action = UIAlertAction(title: "Add item", style: .default) { UIAlertAction in
-            //form model
-            let newItem = Item()
+            
+            // grab the coredata context
+            //form model based on core data entity and give the the coreDB context to work from
+            let newItem = Item(context: self.context)
             newItem.title = newTodoListItem.text!
             self.itemArr.append(newItem)
             // Reload data
             self.tableView.reloadData()
             // add to plist
-            self.defaults.set(self.itemArr, forKey: "TodoListArr")
+            //            self.defaults.set(self.itemArr, forKey: "TodoListArr")
+            self.saveItem()
         }
         
         // manually add that action
@@ -85,6 +98,26 @@ class TodoListViewController: UITableViewController {
         }
         // finally present the alert
         self.present(alert, animated: true, completion: nil)
+    }
+    
+    func saveItem() {
+        // add to my custom plist
+        do {
+            try self.context.save()
+        } catch {
+            print("\(error)")
+        }
+    }
+    
+    //MARK: - Load Items
+    func loadItems() {
+        // setup a  NS fetch request - assign it item(within data model) fetchrequest
+        let request: NSFetchRequest<Item> = Item.fetchRequest()
+        do{
+          itemArr =  try context.fetch(request)
+        } catch {
+            print("\(error)")
+        }
     }
 }
 
