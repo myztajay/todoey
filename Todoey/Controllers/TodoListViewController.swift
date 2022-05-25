@@ -15,9 +15,14 @@ class TodoListViewController: UITableViewController {
     let defaults = UserDefaults.standard
     // get our filepath
     var dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    var selectedCategory : Category? {
+        didSet {
+            loadItems()
+        }
+    }
     // grab the context from coredata
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-
+    @IBOutlet weak var searchBar: UISearchBar!
     
     override func viewDidLoad() {
         
@@ -34,6 +39,7 @@ class TodoListViewController: UITableViewController {
         //        let newItem2 = Item()
         //        newItem2.title = "get eggs"
         //        itemArr.append(newItem2)
+        searchBar.delegate = self
         loadItems()
     }
     //MARK: - TABLE VIEW SECION
@@ -62,6 +68,10 @@ class TodoListViewController: UITableViewController {
         tableView.deselectRow(at: ip, animated: true)
         // flip switch for checkmark
         selectedItem.isDone = !selectedItem.isDone
+        //deletes from context
+        //        context.delete(itemArr[ip.row])
+        //        // removed it from the UI
+        //        itemArr.remove(at: ip.row)
         self.saveItem()
         tableView.reloadData()
     }
@@ -80,11 +90,10 @@ class TodoListViewController: UITableViewController {
             //form model based on core data entity and give the the coreDB context to work from
             let newItem = Item(context: self.context)
             newItem.title = newTodoListItem.text!
+            // assign parent category
+            newItem.parentCategory = self.selectedCategory
             self.itemArr.append(newItem)
-            // Reload data
             self.tableView.reloadData()
-            // add to plist
-            //            self.defaults.set(self.itemArr, forKey: "TodoListArr")
             self.saveItem()
         }
         
@@ -110,15 +119,40 @@ class TodoListViewController: UITableViewController {
     }
     
     //MARK: - Load Items
-    func loadItems() {
-        // setup a  NS fetch request - assign it item(within data model) fetchrequest
-        let request: NSFetchRequest<Item> = Item.fetchRequest()
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate : NSPredicate? = nil) {
+        let categoryPredicate = NSPredicate(format:"parentCategory.name MATCHES %@", selectedCategory!.name!)
+        if let additionalPredicate = predicate {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
+        } else {
+            request.predicate = categoryPredicate
+        }
+        // compound predicate
+//        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, predicate])
         do{
-          itemArr =  try context.fetch(request)
+            itemArr =  try context.fetch(request)
         } catch {
             print("\(error)")
         }
+        tableView.reloadData()
     }
 }
 
-
+//MARK: - SearchBar
+extension TodoListViewController: UISearchBarDelegate {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        // request data
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        let predicate = NSPredicate(format:"title CONTAINS[cd] %@", searchBar.text!)
+        request.sortDescriptors  = [NSSortDescriptor(key: "title", ascending: true)]
+        loadItems(with: request, predicate: predicate)
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if  searchBar.text?.count == 0 {
+            loadItems()
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            }
+        }
+    }
+}
